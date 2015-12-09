@@ -6,7 +6,7 @@ cleaner = Cleaner()
 cleaner.javascript = True
 cleaner.style = True
 
-DEBUG = True
+DEBUG = False
 
 class SEOItem(scrapy.Item):
 
@@ -37,6 +37,9 @@ class SEOItem(scrapy.Item):
     response_time = scrapy.Field()
     orders_in_progress = scrapy.Field()
 
+    def __repr__(self):
+        return repr("parsed: %s" % self['url'])
+
 class SEOClerkSpider(scrapy.Spider):
     name = 'blogspider'
 
@@ -60,7 +63,7 @@ class SEOClerkSpider(scrapy.Spider):
 
         doc = lxml.html.fromstring(response._body)
 
-        category = re.sub("Page \d+ of ", "", doc.cssselect("head > title")[0].text_content().replace("  - SEOClerks", ""))
+        category = re.sub("Page \d+ of ", "", doc.cssselect("head > title")[0].text_content().replace("- SEOClerks", "").replace(": Find and hire Freelancers", "").strip())
 
         for item in doc.cssselect("ul.timeline > li.listbitsep"):
 
@@ -158,19 +161,30 @@ class SEOClerkSpider(scrapy.Spider):
             except IndexError:
                 orders_in_progress = None
 
-            product = doc.cssselect("div[itemtype='http://schema.org/Product']")[0]
+            try:
+                subcategory = doc.cssselect("div.post-block.post-author > div.row > div > a")[0].text_content().strip()
+                subcategory_url = doc.cssselect("div.post-block.post-author > div.row > div > a")[0].get('href')
+            except IndexError:
+                subcategory = doc.cssselect("div.post-block.post-author > div.row > div > span.hidden-phone > a")[0].text_content().strip()
+                subcategory_url = doc.cssselect("div.post-block.post-author > div.row > div > span.hidden-phone > a")[0].get('href')
 
-            subcategory = product.cssselect("div.post-block:first-child > div.row span a.inverted")[0].text_content().strip()
-            subcategory_url = product.cssselect("div.post-block:first-child > div.row span a.inverted")[0].get('href')
-
-            title_full = product.cssselect("h1[itemprop='name']")[0].text_content().strip()
-            summary_full = cleaner.clean_html(product.cssselect("div[itemprop='description']")[0]).text_content().strip()
-            summary_full = re.sub("\s+", " ", summary_full)
+            # Regular Parsing Code - All pages except "Want to Trade" and "Want to Buy"
+            if "Want to Trade" not in response.meta['category'] and "Want to Buy" not in response.meta['category']:
+                product = doc.cssselect("div[itemtype='http://schema.org/Product']")[0]
+                title_full = product.cssselect("h1[itemprop='name']")[0].text_content().strip()
+                summary_full = cleaner.clean_html(product.cssselect("div[itemprop='description']")[0]).text_content().strip()
+                summary_full = re.sub("\s+", " ", summary_full)
+            else:
+                product = doc.cssselect("div.post-block.post-author")[0].getparent()
+                title_full = product.cssselect("h1.viewbig")[0].text_content().strip()
+                summary_full = cleaner.clean_html(product.cssselect("div.post-block:nth-child(2)")[0]).text_content().strip()
+                summary_full = re.sub("\s+", " ", summary_full)
 
         except Exception as e:
             print(e)
             traceback.print_exc()
             if DEBUG: import pdb; pdb.set_trace()
+            else: raise scrapy.exceptions.IgnoreRequest
 
         yield SEOItem(
             url = response.meta['url'],
