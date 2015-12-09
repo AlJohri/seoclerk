@@ -140,9 +140,20 @@ class SEOClerkSpider(scrapy.Spider):
                 else:
                     order_url = "error"
 
-            expected_delivery = doc.cssselect("aside p.bordered-bottom.resizeline > small > strong > i.icon-time")[0].getparent().getnext().text_content().strip()
-            response_time = doc.cssselect("aside p.bordered-bottom.resizeline > small > strong > i.icon-refresh")[0].getparent().getnext().text_content().strip()
-            orders_in_progress = doc.cssselect("aside p.bordered-bottom.resizeline > small > strong > i.icon-download-alt")[0].getparent().getnext().text_content().strip()
+            try:
+                expected_delivery = doc.cssselect("aside p.bordered-bottom.resizeline > small > strong > i.icon-time")[0].getparent().getnext().text_content().strip()
+            except IndexError:
+                expected_delivery = None
+
+            try:
+                response_time = doc.cssselect("aside p.bordered-bottom.resizeline > small > strong > i.icon-refresh")[0].getparent().getnext().text_content().strip()
+            except IndexError:
+                response_time = None
+
+            try:
+                orders_in_progress = doc.cssselect("aside p.bordered-bottom.resizeline > small > strong > i.icon-download-alt")[0].getparent().getnext().text_content().strip()
+            except IndexError:
+                orders_in_progress = None
 
             if "N/A" not in expected_delivery: expected_delivery = int(expected_delivery)
             if "N/A" not in response_time: response_time = int(response_time)
