@@ -142,22 +142,21 @@ class SEOClerkSpider(scrapy.Spider):
 
             try:
                 expected_delivery = doc.cssselect("aside p.bordered-bottom.resizeline > small > strong > i.icon-time")[0].getparent().getnext().text_content().strip()
+                if "N/A" not in expected_delivery: expected_delivery = int(expected_delivery)
             except IndexError:
                 expected_delivery = None
 
             try:
                 response_time = doc.cssselect("aside p.bordered-bottom.resizeline > small > strong > i.icon-refresh")[0].getparent().getnext().text_content().strip()
+                if "N/A" not in response_time: response_time = int(response_time)
             except IndexError:
                 response_time = None
 
             try:
                 orders_in_progress = doc.cssselect("aside p.bordered-bottom.resizeline > small > strong > i.icon-download-alt")[0].getparent().getnext().text_content().strip()
+                if "N/A" not in orders_in_progress: orders_in_progress = int(orders_in_progress)
             except IndexError:
                 orders_in_progress = None
-
-            if "N/A" not in expected_delivery: expected_delivery = int(expected_delivery)
-            if "N/A" not in response_time: response_time = int(response_time)
-            if "N/A" not in orders_in_progress: orders_in_progress = int(orders_in_progress)
 
             product = doc.cssselect("div[itemtype='http://schema.org/Product']")[0]
 
